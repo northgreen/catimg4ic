@@ -20,19 +20,19 @@
  * @brief Structure defining a color in RGB format
  */
 typedef struct {
-        uint8_t r, ///< Red
-                g, ///< Green
-                b, ///< Blue
-                a; ///< Alpha
+    uint8_t r, ///< Red
+    g, ///< Green
+    b, ///< Blue
+    a; ///< Alpha
 } color_t;
 
 /**
  * @brief Structure defining a color in YUV format
  */
 typedef struct {
-        float y, ///< Y'
-              u, ///< u
-              v; ///< v
+    float y, ///< Y'
+    u, ///< u
+    v; ///< v
 } color_yuv_t;
 
 #define N_COLORS 247 ///< Number of colors in terminal
@@ -78,6 +78,7 @@ void col_cpy(const color_t *col, color_t *out);
  * @brief Initialize the hastable for the colors
  */
 void init_hash_colors();
+
 /**
  * @brief Free the hashtables for the colors
  */

@@ -42,11 +42,11 @@
  * @brief Structure to handle images
  */
 typedef struct {
-        color_t *pixels; ///< 1 dim pixels pixels[x+y*w]
-        uint32_t width, ///< Width of the image
-                 height, ///< Height of the image
-                 frames; ///< Number of frames
-        uint16_t *delays; ///< Array of delays. Length = frames - 1
+    color_t *pixels; ///< 1 dim pixels pixels[x+y*w]
+    uint32_t width, ///< Width of the image
+    height, ///< Height of the image
+    frames; ///< Number of frames
+    uint16_t *delays; ///< Array of delays. Length = frames - 1
 } image_t;
 
 /**
@@ -55,7 +55,7 @@ typedef struct {
  * @param img instance
  * @param file file to load
  */
-void img_load_from_file(image_t *img, const char* file);
+void img_load_from_file(image_t *img, const char *file);
 
 /**
  * @brief Load an image from stdin
@@ -77,7 +77,7 @@ void img_create(image_t *img, uint32_t width, uint32_t height);
  * @param img instance affected
  * @param cpy image we want to copy
  */
-void img_copy(image_t* img, image_t *cpy);
+void img_copy(image_t *img, image_t *cpy);
 
 /**
  * @brief Free the ressources for an image
@@ -108,7 +108,7 @@ void img_convert_colors(image_t *img);
  * @param img instance affected
  * @return a const pointer to the color
  */
-const color_t* img_get_pixel(image_t *img, uint32_t x, uint32_t y);
+const color_t *img_get_pixel(image_t *img, uint32_t x, uint32_t y);
 
 /**
  * @brief change the color of a pixel

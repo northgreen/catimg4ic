@@ -167,13 +167,13 @@ typedef khint_t khiter_t;
 #endif
 
 #ifndef kcalloc
-#define kcalloc(N,Z) calloc(N,Z)
+#define kcalloc(N, Z) calloc(N,Z)
 #endif
 #ifndef kmalloc
 #define kmalloc(Z) malloc(Z)
 #endif
 #ifndef krealloc
-#define krealloc(P,Z) realloc(P,Z)
+#define krealloc(P, Z) realloc(P,Z)
 #endif
 #ifndef kfree
 #define kfree(P) free(P)
@@ -377,16 +377,16 @@ static const double __ac_HASH_UPPER = 0.77;
   @abstract     64-bit integer comparison function
  */
 #define kh_int64_hash_equal(a, b) ((a) == (b))
+
 /*! @function
   @abstract     const char* hash function
   @param  s     Pointer to a null terminated string
   @return       The hash value
  */
-static kh_inline khint_t __ac_X31_hash_string(const char *s)
-{
-        khint_t h = (khint_t)*s;
-        if (h) for (++s ; *s; ++s) h = (h << 5) - h + (khint_t)*s;
-        return h;
+static kh_inline khint_t __ac_X31_hash_string(const char *s) {
+    khint_t h = (khint_t) *s;
+    if (h) for (++s; *s; ++s) h = (h << 5) - h + (khint_t) *s;
+    return h;
 }
 /*! @function
   @abstract     Another interface to const char* hash function
@@ -399,16 +399,16 @@ static kh_inline khint_t __ac_X31_hash_string(const char *s)
  */
 #define kh_str_hash_equal(a, b) (strcmp(a, b) == 0)
 
-static kh_inline khint_t __ac_Wang_hash(khint_t key)
-{
+static kh_inline khint_t __ac_Wang_hash(khint_t key) {
     key += ~(key << 15);
-    key ^=  (key >> 10);
-    key +=  (key << 3);
-    key ^=  (key >> 6);
+    key ^= (key >> 10);
+    key += (key << 3);
+    key ^= (key >> 6);
     key += ~(key << 11);
-    key ^=  (key >> 16);
+    key ^= (key >> 16);
     return key;
 }
+
 #define kh_int_hash_func2(k) __ac_Wang_hash((khint_t)key)
 
 /* --- END OF HASH FUNCTIONS --- */

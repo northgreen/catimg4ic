@@ -27,7 +27,13 @@ file(GLOB_RECURSE source_files ${SRC}/*)
 add_executable(
   catimg
   ${source_files}
-  )
+        src/sh_item2.c
+        src/b64.c
+        src/b64.c
+        src/b64.h
+        src/sh_iterm2.h
+        src/sh_iterm2.h
+)
 
 install(TARGETS catimg
   RUNTIME DESTINATION bin)

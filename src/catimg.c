@@ -5,8 +5,11 @@
 #include "sh_utils.h"
 #include <unistd.h>
 #include <signal.h>
+#include <stdbool.h>
+#include "sh_iterm2.h"
 
-#ifdef _WIN32
+#ifdef WINDOWS
+
 #include <windows.h>
 
 void get_terminal_dimensions(int *width, int *height) {
@@ -15,6 +18,7 @@ void get_terminal_dimensions(int *width, int *height) {
     *width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
     *height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
 }
+
 #else
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -59,37 +63,41 @@ void intHandler() {
     stop = 1;
 }
 
-int getopt(int argc, char * const argv[], const char *optstring);
+int getopt(int argc, char *const argv[], const char *optstring);
 
 uint32_t pixelToInt(const color_t *pixel) {
     if (pixel->a == 0)
         return 0xffff;
     else if (pixel->r == pixel->g && pixel->g == pixel->b)
-        return 232 + (pixel->r * 23)/255;
+        return 232 + (pixel->r * 23) / 255;
     else
-        return (16 + ((pixel->r*5)/255)*36
-                + ((pixel->g*5)/255)*6
-                + (pixel->b*5)/255);
+        return (16 + ((pixel->r * 5) / 255) * 36
+                + ((pixel->g * 5) / 255) * 6
+                + (pixel->b * 5) / 255);
 }
 
 char supportsUTF8() {
-    const char* LC_ALL = getenv("LC_ALL");
-    const char* LANG = getenv("LANG");
-    const char* LC_CTYPE = getenv("LC_CTYPE");
-    const char* UTF = "UTF-8";
+    const char *LC_ALL = getenv("LC_ALL");
+    const char *LANG = getenv("LANG");
+    const char *LC_CTYPE = getenv("LC_CTYPE");
+    const char *UTF = "UTF-8";
     return (LC_ALL && strstr(LC_ALL, UTF))
-        || (LANG && strstr(LANG, UTF))
-        || (LC_CTYPE && strstr(LC_CTYPE, UTF));
+           || (LANG && strstr(LANG, UTF))
+           || (LC_CTYPE && strstr(LC_CTYPE, UTF));
 }
 
-int main(int argc, char *argv[])
-{
+bool support_iterm() {
+
+}
+
+int main(int argc, char *argv[]) {
     init_hash_colors();
     image_t img;
     char *file;
     char *num;
     int c;
     opterr = 0;
+    bool use_iterm = false;
 
     uint32_t cols = 0, rows = 0, precision = 0;
     uint32_t max_cols = 0, max_rows = 0;
@@ -98,7 +106,7 @@ int main(int argc, char *argv[])
     uint8_t adjust_to_height = 0, adjust_to_width = 0;
     float scale_cols = 0, scale_rows = 0;
 
-    while ((c = getopt (argc, argv, "H:w:l:r:hct")) != -1)
+    while ((c = getopt(argc, argv, "H:w:l:r:hcti")) != -1)
         switch (c) {
             case 'H':
                 rows = strtol(optarg, &num, 0);
@@ -136,6 +144,9 @@ int main(int argc, char *argv[])
             case 't':
                 true_color = 0;
                 break;
+            case 'i':
+                use_iterm = true;
+                break;
             default:
                 printf(USAGE);
                 exit(1);
@@ -143,7 +154,7 @@ int main(int argc, char *argv[])
         }
 
     if (argc > 1)
-        file = argv[argc-1];
+        file = argv[argc - 1];
     else {
         printf(USAGE);
         exit(1);
@@ -166,19 +177,26 @@ int main(int argc, char *argv[])
         img_load_from_file(&img, file);
     }
     if (cols == 0 && rows == 0) {
-        scale_cols = max_cols / (float)img.width;
-        scale_rows = max_rows / (float)img.height;
+        scale_cols = max_cols / (float) img.width;
+        scale_rows = max_rows / (float) img.height;
         if (adjust_to_height && scale_rows < scale_cols && max_rows < img.height)
             // rows == 0 and adjust_to_height > adjust to height instead of width
             img_resize(&img, scale_rows, scale_rows);
         else if (max_cols < img.width)
             img_resize(&img, scale_cols, scale_cols);
     } else if (cols > 0 && cols < img.width) {
-        scale_cols = cols / (float)img.width;
+        scale_cols = cols / (float) img.width;
         img_resize(&img, scale_cols, scale_cols);
-     } else if (rows > 0 && rows < img.height) {
-        scale_rows = rows / (float)img.height;
+    } else if (rows > 0 && rows < img.height) {
+        scale_rows = rows / (float) img.height;
         img_resize(&img, scale_rows, scale_rows);
+    }
+
+    if(use_iterm){
+        it2_showimg(file, img.width, img.height,1);
+        img_free(&img);
+        free_hash_colors();
+        exit(0);
     }
 
     if (convert)
@@ -207,21 +225,20 @@ int main(int argc, char *argv[])
             for (y = 0; y < img.height; y += precision) {
                 for (x = 0; x < img.width; x++) {
                     index = y * img.width + x + offset;
-                    const color_t* upperPixel = &img.pixels[index];
+                    const color_t *upperPixel = &img.pixels[index];
                     uint32_t fgCol = pixelToInt(upperPixel);
                     if (precision == 2) {
                         if (y < img.height - 1) {
-                            const color_t* lowerPixel = &img.pixels[index + img.width];
+                            const color_t *lowerPixel = &img.pixels[index + img.width];
                             uint32_t bgCol = pixelToInt(&img.pixels[index + img.width]);
                             if (upperPixel->a < TRANSP_ALPHA) { // first pixel is transparent
                                 if (lowerPixel->a < TRANSP_ALPHA)
                                     printf("\e[m ");
+                                else if (true_color)
+                                    printf("\x1b[0;38;2;%d;%d;%dm\u2584",
+                                           lowerPixel->r, lowerPixel->g, lowerPixel->b);
                                 else
-                                    if (true_color)
-                                        printf("\x1b[0;38;2;%d;%d;%dm\u2584",
-                                               lowerPixel->r, lowerPixel->g, lowerPixel->b);
-                                    else
-                                        printf("\e[0;38;5;%um\u2584", bgCol);
+                                    printf("\e[0;38;5;%um\u2584", bgCol);
                             } else {
                                 if (lowerPixel->a < TRANSP_ALPHA)
                                     if (true_color)
@@ -229,33 +246,30 @@ int main(int argc, char *argv[])
                                                upperPixel->r, upperPixel->g, upperPixel->b);
                                     else
                                         printf("\e[0;38;5;%um\u2580", fgCol);
+                                else if (true_color)
+                                    printf("\x1b[48;2;%d;%d;%dm\x1b[38;2;%d;%d;%dm\u2584",
+                                           upperPixel->r, upperPixel->g, upperPixel->b,
+                                           lowerPixel->r, lowerPixel->g, lowerPixel->b);
                                 else
-                                    if (true_color)
-                                        printf("\x1b[48;2;%d;%d;%dm\x1b[38;2;%d;%d;%dm\u2584",
-                                               upperPixel->r, upperPixel->g, upperPixel->b,
-                                               lowerPixel->r, lowerPixel->g, lowerPixel->b);
-                                    else
-                                         printf("\e[38;5;%u;48;5;%um\u2580", fgCol, bgCol);
+                                    printf("\e[38;5;%u;48;5;%um\u2580", fgCol, bgCol);
                             }
                         } else { // this is the last line
                             if (upperPixel->a < TRANSP_ALPHA)
                                 printf("\e[m ");
+                            else if (true_color)
+                                printf("\x1b[0;38;2;%d;%d;%dm\u2580",
+                                       upperPixel->r, upperPixel->g, upperPixel->b);
                             else
-                                if (true_color)
-                                    printf("\x1b[0;38;2;%d;%d;%dm\u2580",
-                                           upperPixel->r, upperPixel->g, upperPixel->b);
-                                else
-                                    printf("\e[38;5;%um\u2580", fgCol);
+                                printf("\e[38;5;%um\u2580", fgCol);
                         }
                     } else {
                         if (img.pixels[index].a < TRANSP_ALPHA)
                             printf("\e[m  ");
+                        else if (true_color)
+                            printf("\x1b[0;48;2;%d;%d;%dm  ",
+                                   img.pixels[index].r, img.pixels[index].g, img.pixels[index].b);
                         else
-                            if (true_color)
-                                printf("\x1b[0;48;2;%d;%d;%dm  ",
-                                       img.pixels[index].r, img.pixels[index].g, img.pixels[index].b);
-                            else
-                                printf("\e[48;5;%um  ", fgCol);
+                            printf("\e[48;5;%um  ", fgCol);
                     }
                 }
                 printf("\e[m\n");
