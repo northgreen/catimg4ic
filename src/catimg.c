@@ -5,7 +5,27 @@
 #include "sh_utils.h"
 #include <unistd.h>
 #include <signal.h>
+
+#ifdef _WIN32
+#include <windows.h>
+
+void get_terminal_dimensions(int *width, int *height) {
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+    *width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    *height = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+}
+#else
 #include <sys/ioctl.h>
+#include <unistd.h>
+
+void get_terminal_dimensions(int *width, int *height) {
+    struct winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    *width = w.ws_col;
+    *height = w.ws_row;
+}
+#endif
 
 #define USAGE "Usage: catimg [-hct] [-w width | -H height] [-l loops] [-r resolution] image-file\n\n" \
   "  -h: Displays this message\n"                                      \
